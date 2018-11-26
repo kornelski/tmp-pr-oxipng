@@ -359,7 +359,7 @@ impl PngData {
             return false;
         }
 
-        let mut palette_map = [0u8; 256];
+        let mut palette_map = [None; 256];
         let mut used = [false; 256];
         {
             let palette = match self.palette {
@@ -387,7 +387,7 @@ impl PngData {
                 }
             }
 
-            let mut next_index = 0;
+            let mut next_index = 0u16;
             let mut seen = HashMap::with_capacity(palette.len());
             for (i, (used, palette_map)) in used.iter().cloned().zip(palette_map.iter_mut()).enumerate() {
                 if !used {
@@ -397,38 +397,41 @@ impl PngData {
                 let color = palette.get(i).cloned().unwrap_or(RGBA8::new(0,0,0,255));
                 match seen.entry(color) {
                     Vacant(new) => {
-                        *palette_map = next_index;
-                        new.insert(next_index);
+                        *palette_map = Some(next_index as u8);
+                        new.insert(next_index as u8);
                         next_index += 1;
                     },
                     Occupied(remap_to) => {
-                        *palette_map = *remap_to.get();
+                        *palette_map = Some(*remap_to.get());
                     },
                 }
             }
-            if (0..palette.len()).all(|i| palette_map[i] == i as u8) {
+            if (0..palette.len()).all(|i| palette_map[i].map_or(true, |to| to == i as u8)) {
                 return false;
             }
         }
 
-        self.do_palette_reduction(&palette_map, &used);
+        self.do_palette_reduction(&palette_map);
         true
     }
 
-    fn do_palette_reduction(&mut self, palette_map: &[u8; 256], used: &[bool; 256]) {
-        let mut byte_map = *palette_map;
+    fn do_palette_reduction(&mut self, palette_map: &[Option<u8>; 256]) {
+        let mut byte_map = [0u8; 256];
 
         // low bit-depths can be pre-computed for every byte value
         match self.ihdr_data.bit_depth {
+            BitDepth::Eight => for byte in 0..=255 {
+                byte_map[byte as usize] = palette_map[byte as usize].unwrap_or(0)
+            },
             BitDepth::Four => for byte in 0..=255 {
-                byte_map[byte as usize] = palette_map[(byte & 0x0F) as usize] |
-                    (palette_map[(byte >> 4) as usize] << 4);
+                byte_map[byte as usize] = palette_map[(byte & 0x0F) as usize].unwrap_or(0) |
+                    (palette_map[(byte >> 4) as usize].unwrap_or(0) << 4);
             },
             BitDepth::Two => for byte in 0..=255 {
-                byte_map[byte as usize] = palette_map[(byte & 0x03) as usize] |
-                    (palette_map[((byte >> 2) & 0x03) as usize] << 2) |
-                    (palette_map[((byte >> 4) & 0x03) as usize] << 4) |
-                    (palette_map[((byte >> 6)) as usize] << 6);
+                byte_map[byte as usize] = palette_map[(byte & 0x03) as usize].unwrap_or(0) |
+                    (palette_map[((byte >> 2) & 0x03) as usize].unwrap_or(0) << 2) |
+                    (palette_map[((byte >> 4) & 0x03) as usize].unwrap_or(0) << 4) |
+                    (palette_map[((byte >> 6)) as usize].unwrap_or(0) << 6);
             },
             _ => {}
         }
@@ -442,10 +445,10 @@ impl PngData {
 
         self.transparency_pixel = None;
         if let Some(palette) = self.palette.take() {
-            let max_index = palette_map.iter().max().cloned().unwrap_or(0) as usize;
+            let max_index = palette_map.iter().cloned().filter_map(|x| x).max().unwrap_or(0) as usize;
             let mut new_palette = vec![RGBA8::new(0,0,0,255); max_index+1];
-            for (color, (map_to, used)) in palette.into_iter().zip(palette_map.iter().cloned().zip(used.iter().cloned())) {
-                if used {
+            for (color, map_to) in palette.into_iter().zip(palette_map.iter().cloned()) {
+                if let Some(map_to) = map_to {
                     new_palette[map_to as usize] = color;
                 }
             }
