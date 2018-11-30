@@ -143,8 +143,7 @@ pub fn reduce_color_to_palette(png: &mut PngData) -> bool {
     }
 
     if let Some(sbit_header) = png.aux_headers.get_mut(b"sBIT") {
-        assert_eq!(sbit_header.len(), 4);
-        sbit_header.pop();
+        sbit_header.truncate(3);
     }
 
     let mut palette_vec = vec![RGBA8::new(0,0,0,0); palette.len()];
