@@ -157,6 +157,7 @@ impl Iterator for ScanLineRanges {
         let bits_per_line = pixels_per_line * self.bits_per_pixel as u32;
         let bytes_per_line = ((bits_per_line + 7) / 8) as usize;
         let len = bytes_per_line + 1;
+        debug_assert!(len <= self.left);
         self.left -= len;
         Some((len, current_pass))
     }
