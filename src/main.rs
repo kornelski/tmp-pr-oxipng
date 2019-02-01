@@ -22,6 +22,7 @@ use oxipng::Headers;
 use oxipng::Options;
 use oxipng::PngResult;
 use oxipng::{InFile, OutFile};
+use cfseccomp::CFSeccompRule;
 use std::fs::DirBuilder;
 use std::path::PathBuf;
 use std::process::exit;
@@ -52,8 +53,10 @@ fn main() {
             .possible_value("3")
             .possible_value("4")
             .possible_value("5")
-            .possible_value("6")
             .possible_value("max"))
+        .arg(Arg::with_name("seccomp")
+            .help("Sandbox the proccess")
+            .long("seccomp"))
         .arg(Arg::with_name("backup")
             .help("Back up modified files")
             .short("b")
@@ -228,8 +231,8 @@ fn main() {
                 }
             }))
         .after_help("Optimization levels:
-    -o 0   =>  --zc 3 --nz                  (0 or 1 trials)
-    -o 1   =>  --zc 9                       (1 trial, determined heuristically)
+    -o 0  =>  --zc 3 --nz                  (0 or 1 trials)
+    -o 1  =>  --zc 9                       (1 trial, determined heuristically)
     -o 2   =>  --zc 9 --zs 0-3 -f 0,5       (8 trials with zlib or 2 trials with other compressors)
     -o 3   =>  --zc 9 --zs 0-3 -f 0-5       (24 trials with zlib or 6 trials with other compressors)
     -o 4   =>                               (deprecated; same as `-o 3`)
@@ -240,6 +243,17 @@ fn main() {
     Manually specifying a compression option (zc, zs, etc.) will override the optimization preset,
     regardless of the order you write the arguments.")
         .get_matches_from(wild::args());
+
+    if matches.is_present("seccomp") {
+        cfseccomp::init(CFSeccompRule {
+            ioctl_notty: true, // logging
+            gettime_allow: true, // needed for timeout
+            tsc_allow: true, // needed by rayon
+            open_eaccess: true, //glibc malloc acts up without this due to an open() calls within the malloc implementation
+            rust_std_allow: true,
+            ..Default::default()
+        }).expect("sandbox");
+    }
 
     let (out_file, out_dir, opts) = match parse_opts_into_struct(&matches) {
         Ok(x) => x,
@@ -476,7 +490,7 @@ fn parse_opts_into_struct(
 
         if let Some(x) = matches.value_of("strategies") {
             *strategies = parse_numeric_range_opts(x, 0, 3).unwrap();
-        }
+    }
 
         match matches.value_of("window") {
             Some("256") => *window = 8,
