@@ -29,6 +29,8 @@ path = "src/main.rs"
 required-features = ["binary"]
 
 [dependencies]
+# cargo has trouble using git in cfsetup's environment
+cfseccomp = { path = "../cfseccomp" } # git = "ssh://git@stash.cfops.it:7999/eco/cfseccomp.git"
 bit-vec = "^0.6.2"
 byteorder = "^1.0.0"
 crc = "^1.2.0"
