@@ -667,6 +667,14 @@ fn optimize_png(
         );
     }
 
+    if cfg!(debug_assertions) || opts.pretend || opts.backup {
+        return assert_compressed_images_equal(original_data, output);
+    }
+
+    return Ok(output);
+}
+
+fn assert_compressed_images_equal(original_data: &[u8], output: Vec<u8>) -> PngResult<Vec<u8>> {
     let (old_png, new_png) = rayon::join(
         || image::load_from_memory_with_format(original_data, ImageFormat::Png),
         || image::load_from_memory_with_format(&output, ImageFormat::Png),
