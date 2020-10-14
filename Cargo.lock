@@ -126,9 +126,9 @@ dependencies = [
 
 [[package]]
 name = "cloudflare-zlib-sys"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e195cb274a0d6ee87e718838a09baecd7cbc9f6075dac256a84cb5842739c06"
+checksum = "2f292cf2b2e7b4834650a5c3866446086c75553588c88a4fc9ceffc7ad06650d"
 dependencies = [
  "cc",
 ]
