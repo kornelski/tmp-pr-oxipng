@@ -1,3 +1,4 @@
+#[track_caller]
 pub fn filter_line(filter: u8, bpp: usize, data: &[u8], last_line: &[u8], buf: &mut Vec<u8>) {
     assert!(data.len() >= bpp);
     assert!(last_line.is_empty() || data.len() == last_line.len());
@@ -65,6 +66,7 @@ pub fn filter_line(filter: u8, bpp: usize, data: &[u8], last_line: &[u8], buf: &
     }
 }
 
+#[track_caller]
 pub fn unfilter_line(filter: u8, bpp: usize, data: &[u8], last_line: &[u8], buf: &mut Vec<u8>) {
     buf.clear();
     buf.reserve(data.len());

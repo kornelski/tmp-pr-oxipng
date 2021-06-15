@@ -87,6 +87,7 @@ impl PngData {
     }
 
     /// Create a new `PngData` struct by reading a slice
+    #[inline(never)]
     pub fn from_slice(byte_data: &[u8], fix_errors: bool) -> Result<Self, PngError> {
         let mut byte_offset: usize = 0;
         // Test that png header is valid
@@ -281,6 +282,7 @@ impl PngImage {
     }
 
     /// Reverse all filters applied on the image, returning an unfiltered IDAT bytestream
+    #[inline(never)]
     fn unfilter_image(&self) -> Vec<u8> {
         let mut unfiltered = Vec::with_capacity(self.data.len());
         let bpp = ((self.ihdr.bit_depth.as_u8() * self.channels_per_pixel() + 7) / 8) as usize;
@@ -315,6 +317,7 @@ impl PngImage {
     /// 3: Average
     /// 4: Paeth
     /// 5: All (heuristically pick the best filter for each line)
+    #[inline(never)]
     pub fn filter_image(&self, filter: u8) -> Vec<u8> {
         let mut filtered = Vec::with_capacity(self.data.len());
         let bpp = ((self.ihdr.bit_depth.as_u8() * self.channels_per_pixel() + 7) / 8) as usize;
